@@ -1,0 +1,19 @@
+# Web framework
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+jinja2>=3.1
+
+# Database (SQLite is used locally; psycopg is used for Postgres on Miget/Render)
+SQLAlchemy>=2.0
+psycopg[binary]>=3.1
+
+# YouTube fetching
+yt-dlp>=2024.1
+chat-downloader @ git+https://github.com/Indigo128/chat-downloader
+
+# Analysis
+jieba>=0.42
+scikit-learn>=1.4
+numpy>=1.26
+scipy>=1.11

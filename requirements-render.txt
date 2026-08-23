@@ -1,0 +1,10 @@
+# Extra dependency for Render deployment only (Postgres driver).
+# Not needed for local development, which defaults to SQLite.
+# Render build command installs this on top of requirements.txt.
+#
+# Using psycopg (v3) instead of psycopg2-binary: psycopg2-binary's precompiled
+# wheels lag behind new Python releases, which breaks installs on newer local
+# Python versions. psycopg[binary] publishes wheels much faster and works the
+# same way with SQLAlchemy (just needs postgresql+psycopg:// instead of
+# postgresql:// in the connection string, which app/database.py already handles).
+psycopg[binary]>=3.1

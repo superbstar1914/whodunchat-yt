@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhoDunChat</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>WhoDunChat</h1>
+      <p class="subtitle">這句話是誰講的？🎉</p>
+    </header>
+
+    <!-- ===================== STEP 1: 抓取 ===================== -->
+    <section id="step-fetch" class="step active">
+      <div class="card center-card">
+        <label for="channel-input">YouTube 頻道</label>
+        <input id="channel-input" type="text" placeholder="@handle / 頻道網址 / channel id" autocomplete="off">
+
+        <button id="advanced-toggle" class="link-btn">進階選項 ▾</button>
+        <div id="advanced-panel" class="advanced-panel hidden">
+          <div class="field">
+            <label for="max-concurrent">並行數（聊天室抓取 + 暱稱補查，預設 3）</label>
+            <input id="max-concurrent" type="number" min="1" max="10" value="3" placeholder="3（建議 1~5）">
+          </div>
+          <div class="field">
+            <label for="max-streams">最多抓幾場直播</label>
+            <input id="max-streams" type="number" min="1" placeholder="留空 = 全部">
+          </div>
+          <div class="field">
+            <label for="name-limit">最多補幾位觀眾暱稱</label>
+            <input id="name-limit" type="number" min="1" placeholder="留空 = 全部（較久）">
+          </div>
+          <p class="hint-text">並行數同時影響「聊天室抓取」與「暱稱補查」兩個階段。遇到 YouTube 限速時系統會自動降速。</p>
+        </div>
+
+        <div class="btn-progress-container">
+          <button id="start-fetch-btn" class="primary-btn progress-btn">
+            <div id="start-fetch-btn-fill" class="btn-fill"></div>
+            <span id="start-fetch-btn-text" class="btn-text">開始抓取</span>
+          </button>
+        </div>
+
+        <div id="job-status" class="job-status hidden">
+          <div class="status-line" id="job-stage">-</div>
+          <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+          <div id="in-progress-container" class="in-progress-container hidden">
+            <div class="in-progress-label">⚡ 目前並行處理中：</div>
+            <div id="in-progress-chips" class="in-progress-chips"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <span class="card-title">已抓取頻道</span>
+          <button id="refresh-channels-btn" class="link-btn small">重新整理</button>
+        </div>
+        <div id="channel-list" class="channel-list"></div>
+      </div>
+    </section>
+
+    <!-- ===================== STEP 2: 出題設定 ===================== -->
+    <section id="step-setup" class="step">
+      <div class="card center-card">
+        <div class="selected-channel-row">
+          <span id="selected-channel-name">-</span>
+          <button id="change-channel-btn" class="link-btn small">切換頻道</button>
+        </div>
+
+        <label for="question-count">題數</label>
+        <input id="question-count" type="number" min="1" max="50" value="10">
+
+        <label>難度比例</label>
+        <div class="difficulty-sliders">
+          <div class="slider-row">
+            <span class="slider-label easy-label">簡單</span>
+            <input id="easy-ratio" type="range" min="0" max="100" value="30">
+            <span class="slider-value" id="easy-value">30%</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label medium-label">普通</span>
+            <input id="medium-ratio" type="range" min="0" max="100" value="50">
+            <span class="slider-value" id="medium-value">50%</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label hard-label">困難</span>
+            <input id="hard-ratio" type="range" min="0" max="100" value="20">
+            <span class="slider-value" id="hard-value">20%</span>
+          </div>
+        </div>
+
+        <button id="start-quiz-btn" class="primary-btn">開始出題</button>
+      </div>
+    </section>
+
+    <!-- ===================== STEP 3: 作答 ===================== -->
+    <section id="step-quiz" class="step">
+      <div class="quiz-progress-dots" id="quiz-progress-dots"></div>
+
+      <div class="card quiz-card" id="quiz-card-container">
+        <div id="quiz-sc-banner" class="sc-badge-banner hidden"></div>
+        <div class="quiz-meta">
+          <span id="quiz-stream-title"></span>
+          <span id="quiz-difficulty-badge" class="badge"></span>
+        </div>
+        <div class="quiz-message" id="quiz-message-text"></div>
+        <div id="quiz-options" class="quiz-options"></div>
+      </div>
+    </section>
+
+    <!-- ===================== STEP 4: 結果 ===================== -->
+    <section id="step-result" class="step">
+      <div class="card center-card result-card">
+        <h2 class="result-title">結果</h2>
+        <div class="result-accuracy" id="result-accuracy">-</div>
+        <div class="result-stats" id="result-stats"></div>
+        <button id="restart-btn" class="primary-btn">再玩一輪</button>
+      </div>
+
+      <div class="card result-review-card">
+        <div class="card-header-row">
+          <span class="card-title">📝 作答題目回顧與直播時間戳</span>
+        </div>
+        <div id="result-review-list" class="result-review-list"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 除錯資訊 ===================== -->
+    <footer class="debug-footer">
+      <button id="debug-toggle" class="debug-toggle-btn">除錯 / 資料檢視 ▾</button>
+      <div id="debug-panel" class="debug-panel hidden">
+        <div class="debug-block">
+          <div class="debug-block-title">頻道直播清單</div>
+          <select id="debug-channel-select"></select>
+          <button id="debug-load-streams-btn" class="link-btn small">載入</button>
+          <pre id="debug-streams-output" class="debug-output"></pre>
+        </div>
+        <div class="debug-block">
+          <div class="debug-block-title">觀眾清單 / 風格分析</div>
+          <select id="debug-authors-channel-select"></select>
+          <button id="debug-load-authors-btn" class="link-btn small">載入</button>
+          <div id="debug-authors-list" class="debug-output"></div>
+          <pre id="debug-author-detail" class="debug-output"></pre>
+        </div>
+        <div class="debug-block">
+          <div class="debug-block-title">Job 進度原始資料</div>
+          <pre id="debug-job-raw" class="debug-output"></pre>
+        </div>
+      </div>
+    </footer>
+
+    <div id="error-toast" class="error-toast hidden">
+      <span id="error-toast-text"></span>
+      <button id="error-toast-close">✕</button>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
