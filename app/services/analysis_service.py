@@ -25,7 +25,7 @@ from collections import Counter
 from typing import Optional
 
 import jieba
-jieba.dt.cache_file = './data/jieba.cache' 
+jieba.dt.cache_file = "jieba.cache" 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
