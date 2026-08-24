@@ -15,7 +15,7 @@ import re
 from typing import Optional
 
 import jieba
-jieba.dt.cache_file = "jieba.cache" 
+
 
 _EMOJI_JSON_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "data", "youtubeemoji.json"

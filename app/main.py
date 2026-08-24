@@ -6,6 +6,7 @@ Render 上：由 render.yaml / Procfile 指定啟動指令（見專案根目錄�
 """
 import logging
 import os
+import jieba
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -21,6 +22,8 @@ app = FastAPI(title="WhoDunChat")
 app.include_router(pipeline_router.router)
 app.include_router(quiz_router.router)
 
+jieba.dt.cache_file = "jieba.cache"
+jieba.initialize()
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 
 
