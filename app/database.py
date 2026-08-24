@@ -58,4 +58,18 @@ def get_db():
 def init_db():
     """Create all tables if they don't exist yet."""
     from app.models import models  # noqa: F401  (ensures models are registered on Base.metadata)
+    # ★ 診斷 log
+    if "sqlite" in DATABASE_URL:
+        logger.warning("⚠️  [DB] 使用 SQLite（本地模式）！如果是線上部署，"
+                       "請確認 DATABASE_URL 環境變數是否正確設定。 URL=%s", DATABASE_URL)
+    else:
+        safe = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else "PostgreSQL"
+        logger.info("🐘 [DB] 連線至 PostgreSQL: %s", safe)
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        logger.info("✅ [DB] 連線測試 OK")
+    except Exception as e:
+        logger.error("❌ [DB] 連線失敗: %s", e)
+        raise
     Base.metadata.create_all(bind=engine)
