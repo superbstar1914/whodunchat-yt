@@ -81,21 +81,21 @@ def compute_channel_similarities(db: Session, channel_db_id: int) -> dict:
     回傳 { "author_count": int, "pair_count": int }
     """
     channel_author_ids = (
-    db.query(ChatMessage.author_id)
-    .join(Stream, ChatMessage.stream_id == Stream.id)
-    .filter(Stream.channel_id == channel_db_id)
-    .distinct()
-    .subquery()
+        db.query(ChatMessage.author_id)
+        .join(Stream, ChatMessage.stream_id == Stream.id)
+        .filter(Stream.channel_id == channel_db_id)
+        .distinct()
+        .subquery()
     )
 
-authors_with_profiles = (
-    db.query(Author, AuthorProfile)
-    .join(
-        AuthorProfile,
-        AuthorProfile.author_id == Author.id,
-    )
-    .filter(Author.id.in_(channel_author_ids))
-    .all()
+    authors_with_profiles = (
+        db.query(Author, AuthorProfile)
+        .join(
+            AuthorProfile,
+            AuthorProfile.author_id == Author.id,
+        )
+        .filter(Author.id.in_(channel_author_ids))
+        .all()
     )
 
     # 篩選符合最低留言數門檻的觀眾
