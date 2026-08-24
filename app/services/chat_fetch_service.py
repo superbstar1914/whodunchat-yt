@@ -8,9 +8,9 @@
 - 多執行緒併發支援：
   - Author 建立使用 savepoint (begin_nested)，避免同時建立同一觀眾引發衝突
   - 遇到 SQLite lock 時自動退避重試
-- 暱稱處理：
-  - 同步提取 chat-downloader 回傳的所有暱稱欄位（name, display_name, title 等），
-    在抓取階段直接填入 Author.display_name 並標記 name_resolved，不必等待 yt-dlp 反查。
+  - 暱稱處理：
+  - 同步提取 chat-downloader 回傳的暱稱作為暫存顯示名稱；
+    name_resolved 僅在後續 yt-dlp 反查成功時才標記為 true。
 """
 from __future__ import annotations
 
@@ -78,7 +78,9 @@ def _get_or_create_author(db: Session, author_id: str, name_hint: Optional[str])
                 author = Author(
                     author_id=author_id,
                     display_name=clean_name,
-                    name_resolved=bool(clean_name),
+                    # chat-downloader 的 name 可能只是 @handle，不能視為
+                    # yt-dlp 已成功解析的正式頻道名稱。
+                    name_resolved=False,
                 )
                 db.add(author)
                 db.flush()
@@ -87,13 +89,15 @@ def _get_or_create_author(db: Session, author_id: str, name_hint: Optional[str])
             author = db.query(Author).filter(Author.author_id == author_id).one()
             if clean_name and author.display_name != clean_name:
                 author.display_name = clean_name
-                author.name_resolved = True
+                # 這仍只是 chat-downloader 的 fallback，不能代表 yt-dlp 成功。
+                author.name_resolved = False
                 db.flush()
     else:
         # 觀眾若更換了新暱稱，自動更新為最新暱稱，但所有歷史留言與特徵依然鎖定在同一 author_id
         if clean_name and author.display_name != clean_name:
             author.display_name = clean_name
-            author.name_resolved = True
+            # 新的聊天室名稱只更新 fallback；交由 yt-dlp 再驗證。
+            author.name_resolved = False
             db.flush()
     return author
 
@@ -177,8 +181,10 @@ def fetch_stream_chat(db: Session, stream: Stream, progress_callback=None) -> di
                 or msg.get("author_id")
             )
             name_hint = (
-                author_info.get("name")
-                or author_info.get("display_name")
+                # 若 chat-downloader 同時提供兩者，display_name 比 name
+                # 更接近頻道顯示名稱；name 常常只是 @handle。
+                author_info.get("display_name")
+                or author_info.get("name")
                 or author_info.get("title")
                 or author_info.get("username")
                 or msg.get("author_name")

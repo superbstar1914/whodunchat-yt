@@ -63,7 +63,8 @@ class Author(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     author_id = Column(String, unique=True, nullable=False, index=True)  # YouTube channel id of the commenter
     display_name = Column(String, nullable=True)  # 最新已知暱稱
-    name_resolved = Column(Boolean, default=False)  # 是否已用 yt-dlp 補過名字
+    # 僅代表 yt-dlp 已成功解析過；聊天室抓到的 name 只是暫存 fallback。
+    name_resolved = Column(Boolean, default=False)
 
     total_message_count = Column(Integer, default=0)
     filtered_message_count = Column(Integer, default=0)  # 通過清洗、可用來出題的留言數
@@ -155,4 +156,3 @@ class QuizRecord(Base):
     is_correct = Column(Boolean, nullable=True)
 
     created_at = Column(DateTime, default=utcnow)
-

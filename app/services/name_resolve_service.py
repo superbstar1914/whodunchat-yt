@@ -132,7 +132,9 @@ def resolve_pending_authors(
             else:
                 if author.display_name:
                     stats["fallback_used"] += 1
-                author.name_resolved = True  # 標記已嘗試，不重複查
+                # 失敗不能標記成 resolved，否則之後永遠不會重試；
+                # display_name 仍保留聊天室抓到的 fallback。
+                author.name_resolved = False
                 stats["failed"] += 1
 
             stats["processed"] += 1

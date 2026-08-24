@@ -49,7 +49,8 @@ def resolve_channel_id(channel_input: str) -> dict:
         else:
             url = f"https://www.youtube.com/@{url}"
 
-    with yt_dlp.YoutubeDL(_base_ydl_opts({"playlist_items": "0"})) as ydl:
+    # 不使用 playlist_items=0；部分 yt-dlp 版本會因此拿不到完整頻道 metadata。
+    with yt_dlp.YoutubeDL(_base_ydl_opts({"playlistend": 1})) as ydl:
         info = ydl.extract_info(url, download=False)
 
     channel_id = info.get("channel_id") or info.get("id")
@@ -120,22 +121,44 @@ def resolve_display_name(author_id: str) -> Optional[str]:
     抓不到就回傳 None。
     """
     url = f"https://www.youtube.com/channel/{author_id}"
-    opts = _base_ydl_opts({"playlist_items": "0"})
+    # 只取頻道頁本身的 metadata，不要把頻道頁當成影片清單去掃描。
+    # playlist_items=0 在不同 yt-dlp/YouTube extractor 版本上可能造成
+    # 頻道 metadata 不完整，因此改用 playlistend=1 作為輕量探測。
+    opts = _base_ydl_opts({"playlistend": 1, "ignoreerrors": False})
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
         if not info:
             return None
-        name = info.get("channel") or info.get("uploader") or info.get("channel_name") or info.get("title")
-        if name:
+
+        # channel page 的 title 通常才是頻道顯示名稱；uploader_id / id
+        # 可能是 UC... 或 @handle，不能直接當成 display_name。
+        candidates = (
+            info.get("title"),
+            info.get("channel_name"),
+            info.get("channel"),
+            info.get("uploader"),
+        )
+        for raw_name in candidates:
+            if not isinstance(raw_name, str):
+                continue
+            name = raw_name.strip()
             # 清除 YouTube 頻道標題常帶的尾綴（如 "- Videos", "- 影片" 等）
             for suffix in (" - Videos", " - 影片", " - Streams", " - 直播", " - Home", " - 首頁"):
                 if name.endswith(suffix):
-                    name = name[:-len(suffix)]
-            name = name.strip()
-            if name and not name.startswith("UC") and name != "YouTube":
-                return name
+                    name = name[:-len(suffix)].strip()
+                    break
+            if not name or name == "YouTube" or name.startswith("UC"):
+                continue
+            # 若所有候選都只有 @handle，仍可保留它作為有效名稱；
+            # 但優先順序已確保有正式 title 時不會被 handle 蓋掉。
+            logger.debug("resolve_display_name(%s): selected %r from %r", author_id, name, raw_name)
+            return name
+
+        logger.warning("resolve_display_name(%s): no usable name in yt-dlp info keys=%s", author_id, sorted(info.keys()))
         return None
     except Exception as exc:  # noqa: BLE001
         logger.warning("resolve_display_name failed for %s: %s", author_id, exc)
-        return None
+        # 交給 name_resolve_service 判斷是否為限速/登入/網路錯誤，
+        # 否則這裡吞掉例外後，上層無法啟動既有的降速保護。
+        raise
