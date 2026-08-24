@@ -12,10 +12,12 @@ requirements-render.txt for why psycopg[binary] is installed separately
 only on Render.
 """
 import os
-from sqlalchemy import create_engine
+import logging
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./whodunchat.db")
+logger = logging.getLogger(__name__)
 
 # Render's Postgres URL usually starts with postgres:// or postgresql://.
 # Rewrite either to postgresql+psycopg:// so SQLAlchemy uses the psycopg (v3)
