@@ -22,8 +22,9 @@ app = FastAPI(title="WhoDunChat")
 app.include_router(pipeline_router.router)
 app.include_router(quiz_router.router)
 
-jieba.dt.cache_file = "jieba.cache"
+jieba.dt.cache_file = os.path.join(os.path.dirname(__file__), "jieba.cache")
 jieba.initialize()
+
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 
 

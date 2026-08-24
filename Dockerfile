@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
+RUN python -c "import jieba, os; jieba.dt.cache_file = os.path.abspath('app/jieba.cache'); jieba.initialize()"
+
 EXPOSE 8000
 
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
